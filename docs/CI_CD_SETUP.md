@@ -7,8 +7,8 @@ Dokumen ini menjelaskan cara kerja workflow `.github/workflows/android.yml` untu
 Setiap kali ada `push` ke GitHub (branch apa pun atau tag `v*`), `pull_request` ke `main`/`master`, atau `workflow_dispatch`:
 1. **Checkout & Setup Lingkungan**:
    - Menjalankan runner `ubuntu-24.04` dengan **Temurin JDK 21** (`actions/checkout@v7` dan `actions/setup-java@v6`, berjalan native di Node.js 24).
-   - Menyiapkan Android SDK langsung menggunakan `sdkmanager` bawaan `ubuntu-24.04` (`$ANDROID_HOME`), menerima seluruh lisensi SDK tanpa error `SIGPIPE`/`tools`, dan memasang `platform-tools`, `platforms;android-36`, `build-tools;36.0.0` (serta `platforms;android-36.1` bila tersedia).
-   - Memasang **Gradle 9.3.1** melalui `gradle/actions/setup-gradle@v6` lengkap dengan cache dependensi.
+   - Menyiapkan Android SDK langsung menggunakan `sdkmanager` bawaan `ubuntu-24.04` (`$ANDROID_HOME`), menerima seluruh lisensi SDK tanpa error `SIGPIPE`/`tools`, dan memasang `platform-tools`, `platforms;android-36`, `build-tools;36.0.0`.
+   - Memasang **Gradle 9.9.0** melalui `gradle/actions/setup-gradle@v6` lengkap dengan cache dependensi (selaras dengan `gradle-wrapper.properties`).
 2. **Konfigurasi Keystore & Firebase**:
    - Jika secret `GOOGLE_SERVICES_JSON_B64` tersedia di GitHub Secrets, workflow mendekodenya menjadi `app/google-services.json`. Jika tidak, menggunakan `app/google-services.json` yang ada di repositori.
    - Menggunakan `debug.keystore.base64` atau membuat `debug.keystore` sementara secara otomatis untuk build Debug.

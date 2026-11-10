@@ -68,19 +68,16 @@ jobs:
             "platforms;android-36" \
             "build-tools;36.0.0"
 
-          # Install minor SDK 36.1 if listed in repository; otherwise AGP resolves it automatically
-          "$SDKMANAGER" --sdk_root="$SDK_DIR" --install "platforms;android-36.1" || true
-
           set +o pipefail
           yes | "$SDKMANAGER" --sdk_root="$SDK_DIR" --licenses > /dev/null || true
           set -o pipefail
 
           ls -la "$SDK_DIR/platforms" "$SDK_DIR/licenses" || true
 
-      - name: Set up Gradle 9.3.1
+      - name: Set up Gradle 9.9.0
         uses: gradle/actions/setup-gradle@v6
         with:
-          gradle-version: '9.3.1'
+          gradle-version: '9.9.0'
 
       - name: Configure google-services.json (from Secret if provided)
         env:
