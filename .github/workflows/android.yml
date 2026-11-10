@@ -110,9 +110,11 @@ jobs:
             --tests 'com.example.ExampleUnitTest' \
             --tests 'com.example.ExampleRobolectricTest' \
             -Dorg.gradle.jvmargs="-Xmx3g -Dfile.encoding=UTF-8" \
-            --no-daemon --no-configuration-cache --stacktrace 2>&1 | tee test-run.log; then
-            SUMMARY=$(grep -E "FAILURE:|What went wrong:|Execution failed|FAILED|Exception|Error:" test-run.log | head -n 8 | tr '\n' ' ')
-            echo "::error title=Unit & Robolectric Tests Failed::${SUMMARY:-Check Run Unit & Robolectric Tests step logs for details}"
+            --console=plain --no-daemon --no-configuration-cache --stacktrace 2>&1 | tee test-run.log; then
+            echo "=== Kotlin / Gradle Failure Summary ==="
+            grep -E "^e: |FAILURE:|What went wrong:|Execution failed|FAILED" test-run.log | head -n 20 || true
+            SUMMARY=$(grep -E "^e: |FAILURE:|What went wrong:|Execution failed" test-run.log | head -n 6 | tr '\n' ' ')
+            echo "::error title=Tests or Compilation Failed::${SUMMARY:-See Run Unit & Robolectric Tests log or unit-test-reports/test-run.log}"
             exit 1
           fi
 
