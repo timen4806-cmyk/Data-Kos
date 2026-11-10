@@ -125,6 +125,7 @@ jobs:
             --no-daemon --no-configuration-cache --stacktrace
           mkdir -p dist
           cp app/build/outputs/apk/debug/app-debug.apk dist/WargaKos-debug.apk
+          cp app/build/outputs/apk/debug/app-debug.apk WargaKos-debug.apk
 
       - name: Build Signed Release APK (when keystore secrets are configured)
         id: release_build
@@ -139,6 +140,7 @@ jobs:
             gradle :app:assembleRelease --no-daemon --no-configuration-cache --stacktrace
             mkdir -p dist
             cp app/build/outputs/apk/release/app-release.apk dist/WargaKos-release.apk
+            cp app/build/outputs/apk/release/app-release.apk WargaKos-release.apk
             echo "built=true" >> "$GITHUB_OUTPUT"
           else
             echo "built=false" >> "$GITHUB_OUTPUT"
@@ -148,7 +150,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: WargaKos-debug-apk
-          path: dist/WargaKos-debug.apk
+          path: WargaKos-debug.apk
           retention-days: 30
           if-no-files-found: error
 
@@ -157,7 +159,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: WargaKos-release-apk
-          path: dist/WargaKos-release.apk
+          path: WargaKos-release.apk
           retention-days: 30
 
       - name: Upload Test Reports
