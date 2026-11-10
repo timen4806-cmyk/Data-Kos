@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">WargaKos</string>
+    <string name="default_web_client_id" translatable="false">365821906816-i9goo77h64jocuke0gum37olo3li5ufr.apps.googleusercontent.com</string>
 </resources>

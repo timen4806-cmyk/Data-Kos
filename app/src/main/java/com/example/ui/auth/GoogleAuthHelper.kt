@@ -41,6 +41,19 @@ internal fun FirebaseAuth.authStateFlow(): Flow<FirebaseUser?> = callbackFlow {
 
 object GoogleAuthHelper {
 
+    private fun getWebClientId(context: Context): String? {
+        val resId = context.resources.getIdentifier("default_web_client_id", "string", context.packageName)
+        if (resId != 0) {
+            val found = context.getString(resId)
+            if (found.isNotBlank()) return found
+        }
+        return try {
+            context.getString(R.string.default_web_client_id)
+        } catch (_: Exception) {
+            "365821906816-i9goo77h64jocuke0gum37olo3li5ufr.apps.googleusercontent.com"
+        }
+    }
+
     fun attemptAutoSignIn(
         context: Context,
         credentialManager: CredentialManager,
@@ -52,9 +65,7 @@ object GoogleAuthHelper {
             onAuthSuccess()
             return
         }
-        val clientId = try {
-            context.getString(R.string.default_web_client_id)
-        } catch (_: Exception) {
+        val clientId = getWebClientId(context) ?: run {
             onUnauthenticated()
             return
         }
@@ -95,9 +106,7 @@ object GoogleAuthHelper {
         scope: CoroutineScope,
         onAuthCancelled: () -> Unit = {},
     ) {
-        val clientId = try {
-            context.getString(R.string.default_web_client_id)
-        } catch (_: Exception) {
+        val clientId = getWebClientId(context) ?: run {
             onAuthError("Konfigurasi Google Sign-In belum lengkap (default_web_client_id tidak ditemukan).")
             return
         }
