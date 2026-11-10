@@ -31,6 +31,12 @@ jobs:
       - name: Set up Android SDK & Accept Licenses
         run: |
           SDK_DIR="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          if [ -d "$SDK_DIR" ] && command -v sudo >/dev/null 2>&1; then
+            sudo chown -R "$(id -u):$(id -g)" "$SDK_DIR"
+            chmod -R u+rwX "$SDK_DIR" || true
+          fi
+          mkdir -p "$SDK_DIR/licenses"
+
           echo "ANDROID_HOME=$SDK_DIR" >> "$GITHUB_ENV"
           echo "ANDROID_SDK_ROOT=$SDK_DIR" >> "$GITHUB_ENV"
 
@@ -43,13 +49,19 @@ jobs:
             exit 1
           fi
 
+          # Accept SDK licenses without triggering pipefail SIGPIPE
+          set +o pipefail
+          yes | "$SDKMANAGER" --sdk_root="$SDK_DIR" --licenses > /dev/null || true
+          set -o pipefail
+
+          # Ensure latest cmdline-tools are available so SDK 36/36.1 metadata resolves cleanly
+          "$SDKMANAGER" --sdk_root="$SDK_DIR" --install "cmdline-tools;latest" || true
+          if [ -x "$SDK_DIR/cmdline-tools/latest/bin/sdkmanager" ]; then
+            SDKMANAGER="$SDK_DIR/cmdline-tools/latest/bin/sdkmanager"
+          fi
+
           echo "$(dirname "$SDKMANAGER")" >> "$GITHUB_PATH"
           echo "$SDK_DIR/platform-tools" >> "$GITHUB_PATH"
-
-          # Accept all Android SDK licenses without triggering pipefail SIGPIPE
-          set +o pipefail
-          yes | "$SDKMANAGER" --sdk_root="$SDK_DIR" --licenses > /dev/null
-          set -o pipefail
 
           "$SDKMANAGER" --sdk_root="$SDK_DIR" --install \
             "platform-tools" \
@@ -58,6 +70,12 @@ jobs:
 
           # Install minor SDK 36.1 if listed in repository; otherwise AGP resolves it automatically
           "$SDKMANAGER" --sdk_root="$SDK_DIR" --install "platforms;android-36.1" || true
+
+          set +o pipefail
+          yes | "$SDKMANAGER" --sdk_root="$SDK_DIR" --licenses > /dev/null || true
+          set -o pipefail
+
+          ls -la "$SDK_DIR/platforms" "$SDK_DIR/licenses" || true
 
       - name: Set up Gradle 9.3.1
         uses: gradle/actions/setup-gradle@v6
@@ -75,9 +93,10 @@ jobs:
       - name: Ensure debug keystore exists
         run: |
           if [ ! -f debug.keystore ]; then
-            if [ -f debug.keystore.base64 ]; then
-              base64 -d debug.keystore.base64 > debug.keystore
+            if [ -f debug.keystore.base64 ] && base64 -d debug.keystore.base64 > debug.keystore; then
+              echo "Restored debug.keystore from debug.keystore.base64"
             else
+              rm -f debug.keystore
               keytool -genkeypair -v -keystore debug.keystore \
                 -storepass android -alias androiddebugkey -keypass android \
                 -keyalg RSA -keysize 2048 -validity 10000 \
@@ -90,11 +109,11 @@ jobs:
           gradle :app:testDebugUnitTest \
             --tests 'com.example.ExampleUnitTest' \
             --tests 'com.example.ExampleRobolectricTest' \
-            --no-daemon
+            --no-daemon --stacktrace
 
       - name: Build Debug APK
         run: |
-          gradle :app:assembleDebug --no-daemon
+          gradle :app:assembleDebug --no-daemon --stacktrace
           mkdir -p dist
           cp app/build/outputs/apk/debug/app-debug.apk dist/WargaKos-debug.apk
 
@@ -108,7 +127,7 @@ jobs:
         run: |
           if [ -n "${KEYSTORE_B64:-}" ] && [ -n "${STORE_PASSWORD:-}" ] && [ -n "${KEY_PASSWORD:-}" ]; then
             echo "$KEYSTORE_B64" | base64 -d > my-upload-key.jks
-            gradle :app:assembleRelease --no-daemon
+            gradle :app:assembleRelease --no-daemon --stacktrace
             mkdir -p dist
             cp app/build/outputs/apk/release/app-release.apk dist/WargaKos-release.apk
             echo "built=true" >> "$GITHUB_OUTPUT"
