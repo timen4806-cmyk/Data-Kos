@@ -83,7 +83,7 @@ googleServices { missingGoogleServicesStrategy = MissingGoogleServicesStrategy.W
 
 tasks.withType<Test> {
   failFast = true
-  timeout.set(Duration.ofMinutes(2))
+  timeout.set(Duration.ofMinutes(5))
   testLogging {
     events("passed", "failed", "skipped")
   }

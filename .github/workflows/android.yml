@@ -16,23 +16,28 @@ permissions:
 jobs:
   build-and-test:
     name: Test, Build & Package APK
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '21'
 
       - name: Set up Android SDK & Accept Licenses
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
+        with:
+          packages: |
+            platform-tools
+            platforms;android-36.1
+            build-tools;36.0.0
 
       - name: Set up Gradle 9.3.1
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: '9.3.1'
 
@@ -89,15 +94,16 @@ jobs:
           fi
 
       - name: Upload Debug APK Artifact (Downloadable from Actions)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: WargaKos-debug-apk
           path: dist/WargaKos-debug.apk
           retention-days: 30
+          if-no-files-found: error
 
       - name: Upload Release APK Artifact (if built)
         if: steps.release_build.outputs.built == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: WargaKos-release-apk
           path: dist/WargaKos-release.apk
@@ -105,15 +111,18 @@ jobs:
 
       - name: Upload Test Reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: unit-test-reports
           path: app/build/reports/tests/testDebugUnitTest/
           retention-days: 14
+          if-no-files-found: ignore
 
       - name: Publish Direct APK to GitHub Release (on tag push v*)
         if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           files: dist/*.apk
           generate_release_notes: true
