@@ -102,16 +102,25 @@ jobs:
           fi
 
       - name: Run Unit & Robolectric Tests
+        timeout-minutes: 15
         run: |
           gradle --version
-          gradle :app:testDebugUnitTest \
+          set -o pipefail
+          if ! gradle :app:testDebugUnitTest \
             --tests 'com.example.ExampleUnitTest' \
             --tests 'com.example.ExampleRobolectricTest' \
-            --no-daemon --no-configuration-cache --stacktrace
+            -Dorg.gradle.jvmargs="-Xmx3g -Dfile.encoding=UTF-8" \
+            --no-daemon --no-configuration-cache --stacktrace 2>&1 | tee test-run.log; then
+            SUMMARY=$(grep -E "FAILURE:|What went wrong:|Execution failed|FAILED|Exception|Error:" test-run.log | head -n 8 | tr '\n' ' ')
+            echo "::error title=Unit & Robolectric Tests Failed::${SUMMARY:-Check Run Unit & Robolectric Tests step logs for details}"
+            exit 1
+          fi
 
       - name: Build Debug APK
         run: |
-          gradle :app:assembleDebug --no-daemon --no-configuration-cache --stacktrace
+          gradle :app:assembleDebug \
+            -Dorg.gradle.jvmargs="-Xmx3g -Dfile.encoding=UTF-8" \
+            --no-daemon --no-configuration-cache --stacktrace
           mkdir -p dist
           cp app/build/outputs/apk/debug/app-debug.apk dist/WargaKos-debug.apk
 
@@ -157,6 +166,7 @@ jobs:
           path: |
             app/build/reports/tests/testDebugUnitTest/
             app/build/test-results/testDebugUnitTest/
+            test-run.log
           retention-days: 14
           if-no-files-found: ignore
 

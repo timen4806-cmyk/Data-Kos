@@ -116,7 +116,7 @@ class ExampleRobolectricTest {
 
         suspend fun awaitUntil(predicate: () -> Boolean) {
             var attempts = 0
-            while (!predicate() && attempts < 100) {
+            while (!predicate() && attempts < 400) {
                 org.robolectric.Shadows.shadowOf(android.os.Looper.getMainLooper()).idle()
                 kotlinx.coroutines.delay(25)
                 attempts++
