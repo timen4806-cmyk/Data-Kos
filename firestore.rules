@@ -1,0 +1,110 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global safety net: deny all by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidWargaKos(data, userId) {
+      return data.userId is string &&
+             data.userId == userId &&
+             data.encryptedPayload is string &&
+             data.encryptedPayload.size() >= 16 &&
+             data.encryptedPayload.size() <= 16384 &&
+             data.iv is string &&
+             data.iv.size() >= 12 &&
+             data.iv.size() <= 64 &&
+             data.encryptionVersion is int &&
+             data.encryptionVersion >= 1 &&
+             data.encryptionVersion <= 10 &&
+             data.createdAt is timestamp &&
+             data.createdAt <= request.time &&
+             data.updatedAt is timestamp &&
+             data.updatedAt <= request.time;
+    }
+
+    function isValidVault(data, userId) {
+      return data.userId is string &&
+             data.userId == userId &&
+             data.salt is string &&
+             data.salt.size() >= 16 &&
+             data.salt.size() <= 64 &&
+             data.keyCheckCiphertext is string &&
+             data.keyCheckCiphertext.size() >= 16 &&
+             data.keyCheckCiphertext.size() <= 512 &&
+             data.keyCheckIv is string &&
+             data.keyCheckIv.size() >= 12 &&
+             data.keyCheckIv.size() <= 64 &&
+             data.twoFactorEnabled is bool &&
+             data.biometricEnabled is bool &&
+             (!('totpSecretEncrypted' in data) || (data.totpSecretEncrypted is string && data.totpSecretEncrypted.size() <= 512)) &&
+             (!('totpSecretIv' in data) || (data.totpSecretIv is string && data.totpSecretIv.size() <= 64)) &&
+             data.createdAt is timestamp &&
+             data.createdAt <= request.time &&
+             data.updatedAt is timestamp &&
+             data.updatedAt <= request.time;
+    }
+
+    match /users/{userId}/warga_kos/{recordId} {
+      allow get: if isOwner(userId) && isValidId(recordId);
+      allow list: if isOwner(userId) && existing().userId == request.auth.uid;
+
+      allow create: if isOwner(userId) &&
+                       isValidId(recordId) &&
+                       incoming().keys().hasAll(['userId', 'encryptedPayload', 'iv', 'encryptionVersion', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'encryptedPayload', 'iv', 'encryptionVersion', 'createdAt', 'updatedAt']) &&
+                       isValidWargaKos(incoming(), userId);
+
+      allow update: if isOwner(userId) &&
+                       isValidId(recordId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidWargaKos(incoming(), userId) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['encryptedPayload', 'iv', 'encryptionVersion', 'updatedAt']);
+
+      allow delete: if isOwner(userId) && isValidId(recordId);
+    }
+
+    match /users/{userId}/security/{docId} {
+      allow get: if isOwner(userId) && docId == 'vault';
+      allow list: if false;
+
+      allow create: if isOwner(userId) &&
+                       docId == 'vault' &&
+                       incoming().keys().hasAll(['userId', 'salt', 'keyCheckCiphertext', 'keyCheckIv', 'twoFactorEnabled', 'biometricEnabled', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'salt', 'keyCheckCiphertext', 'keyCheckIv', 'twoFactorEnabled', 'biometricEnabled', 'totpSecretEncrypted', 'totpSecretIv', 'createdAt', 'updatedAt']) &&
+                       isValidVault(incoming(), userId);
+
+      allow update: if isOwner(userId) &&
+                       docId == 'vault' &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidVault(incoming(), userId) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['salt', 'keyCheckCiphertext', 'keyCheckIv', 'twoFactorEnabled', 'biometricEnabled', 'totpSecretEncrypted', 'totpSecretIv', 'updatedAt']);
+
+      allow delete: if isOwner(userId) && docId == 'vault';
+    }
+  }
+}

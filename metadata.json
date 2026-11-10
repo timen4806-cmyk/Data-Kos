@@ -1,0 +1,6 @@
+{
+  "name": "WargaKos",
+  "description": "Aplikasi manajemen data warga kos terenkripsi end-to-end dengan sinkronisasi cloud Firestore, database offline SQLite, autentikasi biometrik & 2FA, serta ekspor laporan PDF dan Excel.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

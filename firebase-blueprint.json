@@ -1,0 +1,114 @@
+{
+  "entities": {
+    "WargaKosRecord": {
+      "title": "WargaKosRecord",
+      "description": "End-to-end encrypted boarding house resident record stored per authenticated owner.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the boarding house owner."
+        },
+        "encryptedPayload": {
+          "type": "string",
+          "description": "Base64 AES-256-GCM ciphertext of resident details JSON."
+        },
+        "iv": {
+          "type": "string",
+          "description": "Base64 12-byte AES-GCM initialization vector."
+        },
+        "encryptionVersion": {
+          "type": "integer",
+          "description": "Schema version of client-side E2EE envelope."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when record was created (FieldValue.serverTimestamp())."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when record was last updated (FieldValue.serverTimestamp())."
+        }
+      },
+      "required": [
+        "userId",
+        "encryptedPayload",
+        "iv",
+        "encryptionVersion",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "SecurityVault": {
+      "title": "SecurityVault",
+      "description": "Per-user E2EE key derivation salt, verification ciphertext, and 2FA/biometric flags.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the vault owner."
+        },
+        "salt": {
+          "type": "string",
+          "description": "Base64 16-byte PBKDF2 salt."
+        },
+        "keyCheckCiphertext": {
+          "type": "string",
+          "description": "Base64 AES-GCM ciphertext of constant verification marker."
+        },
+        "keyCheckIv": {
+          "type": "string",
+          "description": "Base64 IV for keyCheckCiphertext."
+        },
+        "twoFactorEnabled": {
+          "type": "boolean",
+          "description": "Whether TOTP 2FA verification is enabled."
+        },
+        "biometricEnabled": {
+          "type": "boolean",
+          "description": "Whether biometric fingerprint/face unlock is enabled."
+        },
+        "totpSecretEncrypted": {
+          "type": "string",
+          "description": "Optional AES-GCM encrypted Base32 TOTP secret."
+        },
+        "totpSecretIv": {
+          "type": "string",
+          "description": "Optional Base64 IV for totpSecretEncrypted."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of vault creation."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of last vault update."
+        }
+      },
+      "required": [
+        "userId",
+        "salt",
+        "keyCheckCiphertext",
+        "keyCheckIv",
+        "twoFactorEnabled",
+        "biometricEnabled",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/warga_kos/{recordId}": {
+      "schema": { "$ref": "#/entities/WargaKosRecord" },
+      "description": "Encrypted boarding house resident records belonging to the authenticated user."
+    },
+    "/users/{userId}/security/{docId}": {
+      "schema": { "$ref": "#/entities/SecurityVault" },
+      "description": "User E2EE vault metadata and 2FA settings (docId = vault)."
+    }
+  }
+}
