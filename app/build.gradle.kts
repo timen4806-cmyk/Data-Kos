@@ -84,11 +84,16 @@ googleServices { missingGoogleServicesStrategy = MissingGoogleServicesStrategy.W
 tasks.withType<Test> {
   failFast = true
   timeout.set(Duration.ofMinutes(5))
+  reports {
+    html.required.set(true)
+    junitXml.required.set(true)
+  }
   testLogging {
     events("passed", "failed", "skipped")
   }
+  val userHome = providers.systemProperty("user.home").orNull ?: ""
   val cachedRobolectricDir = file("/home/appuser/.m2/repository/org/robolectric/android-all-instrumented/16-robolectric-13921718-i7")
-  if (cachedRobolectricDir.exists() && !file("${System.getProperty("user.home")}/.m2/repository/org/robolectric").exists()) {
+  if (cachedRobolectricDir.exists() && userHome.isNotEmpty() && !file("$userHome/.m2/repository/org/robolectric").exists()) {
     systemProperty("robolectric.offline", "true")
     systemProperty("robolectric.dependency.dir", cachedRobolectricDir.absolutePath)
   }

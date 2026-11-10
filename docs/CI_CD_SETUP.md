@@ -6,7 +6,7 @@ Dokumen ini menjelaskan cara kerja workflow `.github/workflows/android.yml` untu
 
 Setiap kali ada `push` ke GitHub (branch apa pun atau tag `v*`), `pull_request` ke `main`/`master`, atau `workflow_dispatch`:
 1. **Checkout & Setup Lingkungan**:
-   - Menjalankan runner `ubuntu-24.04` dengan **Temurin JDK 21** (`actions/checkout@v7` dan `actions/setup-java@v6`, berjalan native di Node.js 24).
+   - Menjalankan runner `ubuntu-24.04` dengan **Temurin JDK 21** (`actions/checkout@v7` dan `actions/setup-java@v5`, berjalan native di Node.js 24).
    - Menyiapkan Android SDK langsung menggunakan `sdkmanager` bawaan `ubuntu-24.04` (`$ANDROID_HOME`), menerima seluruh lisensi SDK tanpa error `SIGPIPE`/`tools`, dan memasang `platform-tools`, `platforms;android-36`, `build-tools;36.0.0`.
    - Memasang **Gradle 9.9.0** melalui `gradle/actions/setup-gradle@v6` lengkap dengan cache dependensi (selaras dengan `gradle-wrapper.properties`).
 2. **Konfigurasi Keystore & Firebase**:
@@ -14,7 +14,7 @@ Setiap kali ada `push` ke GitHub (branch apa pun atau tag `v*`), `pull_request` 
    - Menggunakan `debug.keystore.base64` atau membuat `debug.keystore` sementara secara otomatis untuk build Debug.
 3. **Pengujian Otomatis (Unit & Robolectric Tests)**:
    - Menjalankan `gradle :app:testDebugUnitTest` untuk `ExampleUnitTest` (enkripsi AES-256-GCM, derivasi kunci kredensial PBKDF2, TOTP 2FA, format `.xlsx`) dan `ExampleRobolectricTest` (SQLite Room offline, ekspor PDF, dan alur login/register E2EE).
-   - Mengunggah laporan tes ke artifact `unit-test-reports`.
+   - Mengunggah laporan HTML (`app/build/reports/tests/testDebugUnitTest/`) dan hasil XML (`app/build/test-results/testDebugUnitTest/`) ke artifact `unit-test-reports`.
 4. **Build & Upload Artifact APK**:
    - Menjalankan `gradle :app:assembleDebug --no-daemon`, menyalin APK ke `dist/WargaKos-debug.apk`, dan mengunggah artifact **`WargaKos-debug-apk`**.
    - Jika secret rilis (`KEYSTORE_B64`, `STORE_PASSWORD`, `KEY_PASSWORD`) diisi, workflow juga menjalankan `gradle :app:assembleRelease --no-daemon` dan mengunggah **`WargaKos-release-apk`**.

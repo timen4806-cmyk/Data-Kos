@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v6
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '21'
@@ -54,7 +54,7 @@ jobs:
           yes | "$SDKMANAGER" --sdk_root="$SDK_DIR" --licenses > /dev/null || true
           set -o pipefail
 
-          # Ensure latest cmdline-tools are available so SDK 36/36.1 metadata resolves cleanly
+          # Ensure latest cmdline-tools are available so SDK 36 metadata resolves cleanly
           "$SDKMANAGER" --sdk_root="$SDK_DIR" --install "cmdline-tools;latest" || true
           if [ -x "$SDK_DIR/cmdline-tools/latest/bin/sdkmanager" ]; then
             SDKMANAGER="$SDK_DIR/cmdline-tools/latest/bin/sdkmanager"
@@ -103,14 +103,15 @@ jobs:
 
       - name: Run Unit & Robolectric Tests
         run: |
+          gradle --version
           gradle :app:testDebugUnitTest \
             --tests 'com.example.ExampleUnitTest' \
             --tests 'com.example.ExampleRobolectricTest' \
-            --no-daemon --stacktrace
+            --no-daemon --no-configuration-cache --stacktrace
 
       - name: Build Debug APK
         run: |
-          gradle :app:assembleDebug --no-daemon --stacktrace
+          gradle :app:assembleDebug --no-daemon --no-configuration-cache --stacktrace
           mkdir -p dist
           cp app/build/outputs/apk/debug/app-debug.apk dist/WargaKos-debug.apk
 
@@ -124,7 +125,7 @@ jobs:
         run: |
           if [ -n "${KEYSTORE_B64:-}" ] && [ -n "${STORE_PASSWORD:-}" ] && [ -n "${KEY_PASSWORD:-}" ]; then
             echo "$KEYSTORE_B64" | base64 -d > my-upload-key.jks
-            gradle :app:assembleRelease --no-daemon --stacktrace
+            gradle :app:assembleRelease --no-daemon --no-configuration-cache --stacktrace
             mkdir -p dist
             cp app/build/outputs/apk/release/app-release.apk dist/WargaKos-release.apk
             echo "built=true" >> "$GITHUB_OUTPUT"
@@ -153,7 +154,9 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: unit-test-reports
-          path: app/build/reports/tests/testDebugUnitTest/
+          path: |
+            app/build/reports/tests/testDebugUnitTest/
+            app/build/test-results/testDebugUnitTest/
           retention-days: 14
           if-no-files-found: ignore
 
