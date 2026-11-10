@@ -2,14 +2,20 @@ name: Android CI/CD Build & APK
 
 on:
   push:
-    branches: [ main, master ]
+    branches:
+      - '**'
+    tags:
+      - 'v*'
   pull_request:
     branches: [ main, master ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build-and-test:
-    name: Build, Test & Package APK
+    name: Test, Build & Package APK
     runs-on: ubuntu-latest
 
     steps:
@@ -22,18 +28,23 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - name: Set up Gradle
+      - name: Set up Android SDK & Accept Licenses
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Gradle 9.3.1
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '9.3.1'
 
-      - name: Configure google-services.json from GitHub Secret (if provided)
+      - name: Configure google-services.json (from Secret if provided)
+        env:
+          GOOGLE_SERVICES_JSON_B64: ${{ secrets.GOOGLE_SERVICES_JSON_B64 }}
         run: |
-          if [ -n "${{ secrets.GOOGLE_SERVICES_JSON_B64 }}" ]; then
-            echo "${{ secrets.GOOGLE_SERVICES_JSON_B64 }}" | base64 -d > app/google-services.json
+          if [ -n "${GOOGLE_SERVICES_JSON_B64:-}" ]; then
+            echo "$GOOGLE_SERVICES_JSON_B64" | base64 -d > app/google-services.json
           fi
 
-      - name: Ensure debug keystore exists for CI build
+      - name: Ensure debug keystore exists
         run: |
           if [ ! -f debug.keystore ]; then
             if [ -f debug.keystore.base64 ]; then
@@ -54,31 +65,42 @@ jobs:
             --no-daemon
 
       - name: Build Debug APK
-        run: gradle :app:assembleDebug --no-daemon
+        run: |
+          gradle :app:assembleDebug --no-daemon
+          mkdir -p dist
+          cp app/build/outputs/apk/debug/app-debug.apk dist/WargaKos-debug.apk
 
-      - name: Build Signed Release APK (when release keystore secrets are set)
-        if: ${{ secrets.KEYSTORE_B64 != '' && secrets.STORE_PASSWORD != '' && secrets.KEY_PASSWORD != '' }}
+      - name: Build Signed Release APK (when keystore secrets are configured)
+        id: release_build
         env:
+          KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           KEYSTORE_PATH: ${{ github.workspace }}/my-upload-key.jks
         run: |
-          echo "${{ secrets.KEYSTORE_B64 }}" | base64 -d > my-upload-key.jks
-          gradle :app:assembleRelease --no-daemon
+          if [ -n "${KEYSTORE_B64:-}" ] && [ -n "${STORE_PASSWORD:-}" ] && [ -n "${KEY_PASSWORD:-}" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > my-upload-key.jks
+            gradle :app:assembleRelease --no-daemon
+            mkdir -p dist
+            cp app/build/outputs/apk/release/app-release.apk dist/WargaKos-release.apk
+            echo "built=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "built=false" >> "$GITHUB_OUTPUT"
+          fi
 
-      - name: Upload Debug APK Artifact
+      - name: Upload Debug APK Artifact (Downloadable from Actions)
         uses: actions/upload-artifact@v4
         with:
           name: WargaKos-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          path: dist/WargaKos-debug.apk
           retention-days: 30
 
       - name: Upload Release APK Artifact (if built)
-        if: ${{ secrets.KEYSTORE_B64 != '' && secrets.STORE_PASSWORD != '' && secrets.KEY_PASSWORD != '' }}
+        if: steps.release_build.outputs.built == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: WargaKos-release-apk
-          path: app/build/outputs/apk/release/*.apk
+          path: dist/WargaKos-release.apk
           retention-days: 30
 
       - name: Upload Test Reports
@@ -88,3 +110,10 @@ jobs:
           name: unit-test-reports
           path: app/build/reports/tests/testDebugUnitTest/
           retention-days: 14
+
+      - name: Publish Direct APK to GitHub Release (on tag push v*)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.apk
+          generate_release_notes: true
