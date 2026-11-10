@@ -20,18 +20,8 @@ Setiap kali ada `push` ke GitHub (branch apa pun atau tag `v*`), `pull_request` 
    - Jika secret rilis (`KEYSTORE_B64`, `STORE_PASSWORD`, `KEY_PASSWORD`) diisi, workflow juga menjalankan `gradle :app:assembleRelease --no-daemon` dan mengunggah **`WargaKos-release-apk`**.
    - Jika Anda melakukan `push` tag versi (`v*`, misalnya `v1.0.0`), workflow otomatis menerbitkan **GitHub Release** berisi file `.apk` yang bisa langsung diunduh tanpa perlu mengekstrak ZIP artifact.
 
-## 2. Cara Mengunduh APK dari GitHub
-
-### Opsi A: Lewat Tab Actions (Setiap Kali Push)
-1. Push kode ke GitHub (`git push`).
-2. Buka repositori di browser lalu klik tab **Actions**.
-3. Klik workflow run terbaru bernama **Android CI/CD Build & APK**.
-4. Pada bagian **Artifacts** di bagian bawah halaman, klik **`WargaKos-debug-apk`** (atau **`WargaKos-release-apk`**) untuk mengunduh file `.apk`.
-
-### Opsi B: Lewat GitHub Releases (Push Tag Versi)
-1. Buat tag dan push ke GitHub:
-   ```bash
-   git tag v1.0.0
-   git push origin v1.0.0
-   ```
-2. Setelah workflow selesai, buka tab **Releases** di repositori GitHub untuk mengunduh file `WargaKos-debug.apk` secara langsung.
+2. **Cara Mengunduh APK dari GitHub Releases (Langsung Tanpa ZIP)**:
+   1. Buka repositori Anda di GitHub.
+   2. Klik tab **Releases** (atau bagian Releases di sebelah kanan halaman).
+   3. Pilih rilis terbaru berjudul **WargaKos Build APK Terbaru (Latest)**.
+   4. Pada bagian **Assets**, klik **`WargaKos-debug.apk`** untuk mengunduh file `.apk` secara langsung tanpa mengekstrak ZIP!

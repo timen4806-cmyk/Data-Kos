@@ -174,11 +174,20 @@ jobs:
           retention-days: 14
           if-no-files-found: ignore
 
-      - name: Publish Direct APK to GitHub Release (on tag push v*)
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Publish Direct APK to GitHub Release (Always on Push & Tag)
         uses: softprops/action-gh-release@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: dist/*.apk
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'latest' }}
+          name: ${{ startsWith(github.ref, 'refs/tags/') && format('Rilis Versi {0}', github.ref_name) || 'WargaKos Build APK Terbaru (Latest)' }}
+          body: |
+            ### WargaKos — Aplikasi Data Warga Kos (Android Native)
+            File APK ini diperbarui secara otomatis setiap kali ada `push` ke repositori GitHub.
+            
+            **Petunjuk Instalasi:**
+            1. Unduh file **`WargaKos-debug.apk`** langsung pada daftar **Assets** di bawah.
+            2. Buka file `.apk` di HP Android Anda untuk langsung menginstal aplikasi WargaKos.
+          files: |
+            dist/WargaKos-debug.apk
           generate_release_notes: true
